@@ -112,6 +112,19 @@ export function AssistantPage() {
               return updated
             })
           }
+        } else if (event.type === 'error') {
+          console.error('Chat error:', event.data.message)
+          fullContent += `\n\n[错误: ${event.data.message}]`
+          setMessages(prev => {
+            const updated = [...prev]
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].role === 'assistant') {
+                updated[i] = { role: 'assistant', content: fullContent }
+                break
+              }
+            }
+            return updated
+          })
         }
       }
     } catch (err) {

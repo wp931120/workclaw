@@ -14,15 +14,38 @@ export function Dashboard() {
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       try {
-        const [tasksData, sessionsData, capsData] = await Promise.all([
+        // Load data in parallel but handle each failure independently
+        const results = await Promise.allSettled([
           api.listTasks(),
           api.listSessions(),
           api.listCapabilities(),
         ])
-        setTasks(tasksData.tasks || [])
-        setSessions(sessionsData || [])
-        setCapabilities(capsData.capabilities || [])
+
+        // Tasks
+        if (results[0].status === 'fulfilled') {
+          setTasks(results[0].value.tasks || [])
+        } else {
+          console.warn('Failed to load tasks:', results[0].reason)
+          setTasks([])
+        }
+
+        // Sessions
+        if (results[1].status === 'fulfilled') {
+          setSessions(results[1].value || [])
+        } else {
+          console.warn('Failed to load sessions:', results[1].reason)
+          setSessions([])
+        }
+
+        // Capabilities
+        if (results[2].status === 'fulfilled') {
+          setCapabilities(results[2].value.capabilities || [])
+        } else {
+          console.warn('Failed to load capabilities:', results[2].reason)
+          setCapabilities([])
+        }
       } catch (e) {
         console.error('Failed to load dashboard data:', e)
       } finally {

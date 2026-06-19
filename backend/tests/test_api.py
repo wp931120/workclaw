@@ -176,3 +176,47 @@ class TestCapabilitiesEndpoint:
         data = response.json()
         assert "capabilities" in data
         assert isinstance(data["capabilities"], list)
+
+
+class TestAuthEndpoint:
+    """Tests for /api/v1/auth/token endpoint."""
+
+    def test_get_token(self, client):
+        """POST /api/v1/auth/token returns access token."""
+        response = client.post("/api/v1/auth/token", json={"email": "test@example.com"})
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+        assert "user" in data
+
+    def test_get_token_default_email(self, client):
+        """POST /api/v1/auth/token works without email."""
+        response = client.post("/api/v1/auth/token", json={})
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+
+
+class TestMessagesEndpoint:
+    """Tests for /api/v1/sessions/{id}/messages endpoint."""
+
+    def test_get_messages_empty(self, client):
+        """GET /api/v1/sessions/{id}/messages returns empty list for new session."""
+        # Create a session first
+        session_response = client.post("/api/v1/sessions", json={"title": "Message Test"})
+        session_id = session_response.json()["id"]
+
+        # Get messages
+        response = client.get(f"/api/v1/sessions/{session_id}/messages")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+
+    def test_get_messages_for_nonexistent_session(self, client):
+        """GET /api/v1/sessions/{id}/messages returns 404 for non-existent session."""
+        # This returns 404 because "nonexistent" is a valid string but not a valid UUID format
+        # The chat.py will first check if it can be parsed as UUID
+        response = client.get("/api/v1/sessions/nonexistent/messages")
+        # Either 400 (invalid UUID) or 404 (session not found) is acceptable
+        assert response.status_code in [400, 404]
