@@ -54,6 +54,12 @@ def create_app() -> FastAPI:
     api_router.include_router(capabilities.router, tags=["capabilities"])
     api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 
+    # Alias routes for cleaner API design:
+    # /api/v1/sessions -> /api/v1/chat/sessions
+    # /api/v1/tasks -> /api/v1/tasks/tasks (already the case)
+    api_router.include_router(chat.router, prefix="", tags=["chat-alias"])
+    api_router.include_router(tasks.router, prefix="", tags=["tasks-alias"])
+
     app.include_router(api_router)
 
     return app

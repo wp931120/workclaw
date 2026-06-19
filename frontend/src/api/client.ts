@@ -76,6 +76,7 @@ class ApiClient {
 
     const decoder = new TextDecoder()
     let buffer = ''
+    let currentEventType = ''
 
     while (true) {
       const { done, value } = await reader.read()
@@ -86,11 +87,14 @@ class ApiClient {
       buffer = lines.pop() || ''
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
+        if (line.startsWith('event: ')) {
+          currentEventType = line.slice(7)
+        } else if (line.startsWith('data: ')) {
           const data = line.slice(6)
           try {
-            const event = JSON.parse(data)
-            yield event
+            const eventData = JSON.parse(data)
+            // Include the event type from the SSE event line
+            yield { type: currentEventType, data: eventData }
           } catch {
             // Skip invalid JSON
           }
