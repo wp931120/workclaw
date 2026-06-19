@@ -82,14 +82,19 @@ export function AssistantPage() {
 
       setMessages(prev => [...prev, { role: 'assistant', content: '' }])
       let fullContent = ''
-      const lastIndex = messages.length + 1 // +1 because we just added user message
 
       for await (const event of api.chat(finalSessionId, userMessage)) {
         if (event.type === 'text_delta') {
           fullContent += event.data.content
           setMessages(prev => {
             const updated = [...prev]
-            updated[lastIndex] = { role: 'assistant', content: fullContent }
+            // Find the last assistant message to update
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].role === 'assistant') {
+                updated[i] = { role: 'assistant', content: fullContent }
+                break
+              }
+            }
             return updated
           })
         } else if (event.type === 'capability_result') {
@@ -98,7 +103,12 @@ export function AssistantPage() {
             fullContent += `\n\n${result.content}`
             setMessages(prev => {
               const updated = [...prev]
-              updated[lastIndex] = { role: 'assistant', content: fullContent }
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].role === 'assistant') {
+                  updated[i] = { role: 'assistant', content: fullContent }
+                  break
+                }
+              }
               return updated
             })
           }

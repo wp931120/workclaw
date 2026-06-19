@@ -70,32 +70,38 @@ class AgenticLoop:
                 event_type = event.get("type")
 
                 if event_type == "content_block_delta":
-                    # Text delta
-                    yield {"type": SSEventType.TEXT_DELTA, "data": {"content": event.get("delta", {}).get("text", "")}}
+                    event_data = event.get("data", {})
+                    delta = event_data.get("delta", {})
+                    # Text delta from LLM
+                    if "text" in delta:
+                        yield {"type": SSEventType.TEXT_DELTA, "data": {"content": delta["text"]}}
+                    # Tool input delta
+                    if "input" in delta and tool_calls:
+                        tool_calls[-1].setdefault("input_raw", "")
+                        tool_calls[-1]["input_raw"] += delta["input"]
 
                 elif event_type == "content_block_start":
-                    block = event.get("content_block", {})
+                    block = event.get("data", {}).get("content_block", {})
                     if block.get("type") == "tool_use":
                         tool_calls.append({
                             "id": block.get("id"),
                             "name": block.get("name"),
                             "input": {},
+                            "input_raw": "",
                         })
 
-                elif event_type == "content_block_delta":
-                    # Tool input delta
-                    delta = event.get("delta", {})
-                    if tool_calls and "input" in delta:
-                        if "input" not in tool_calls[-1]:
-                            tool_calls[-1]["input"] = {}
-                        tool_calls[-1]["input"].update(delta["input"])
-
                 elif event_type == "content_block_stop":
-                    pass  # Block complete
+                    # Parse accumulated tool input JSON
+                    if tool_calls and tool_calls[-1].get("input_raw"):
+                        try:
+                            tool_calls[-1]["input"] = json.loads(tool_calls[-1]["input_raw"])
+                        except json.JSONDecodeError:
+                            tool_calls[-1]["input"] = {}
+                        del tool_calls[-1]["input_raw"]
 
                 elif event_type == "message_delta":
                     # Usage update
-                    usage = event.get("delta", {}).get("usage", {})
+                    usage = event.get("data", {}).get("usage", {})
                     if usage:
                         yield {"type": SSEventType.USAGE, "data": usage}
 

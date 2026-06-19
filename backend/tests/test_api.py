@@ -133,6 +133,38 @@ class TestChatEndpoint:
         assert chat_response.status_code == 200
         assert "text/event-stream" in chat_response.headers.get("content-type", "")
 
+    def test_chat_sse_has_non_empty_text_delta(self, client):
+        """POST /api/v1/sessions/{id}/chat returns SSE with non-empty text_delta content."""
+        session_response = client.post("/api/v1/sessions", json={
+            "title": "SSE Content Test"
+        })
+        session_id = session_response.json()["id"]
+
+        chat_response = client.post(
+            f"/api/v1/sessions/{session_id}/chat",
+            json={"message": "你好"}
+        )
+        assert chat_response.status_code == 200
+
+        body = chat_response.text
+        # Parse SSE events and collect text_delta content
+        text_deltas = []
+        for line in body.split("\n"):
+            if line.startswith("data: "):
+                import json
+                try:
+                    data = json.loads(line[6:])
+                    if "content" in data:
+                        text_deltas.append(data["content"])
+                except json.JSONDecodeError:
+                    pass
+
+        # There should be at least one non-empty text_delta
+        non_empty = [c for c in text_deltas if c]
+        assert len(non_empty) > 0, f"Expected non-empty text_delta, got: {text_deltas}"
+        # Full joined content should be non-empty
+        assert "".join(text_deltas).strip() != "", "Assistant response text should not be empty"
+
 
 class TestCapabilitiesEndpoint:
     """Tests for /api/v1/capabilities endpoint."""
