@@ -22,9 +22,11 @@ class Settings(BaseSettings):
     default_user_email: str = "dev@workclaw.local"
 
     # LLM
-    default_model_profile: str = "anthropic"
+    default_model_profile: str = "claude-glm-5.1"
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_auth_token: str = ""
+    anthropic_base_url: str = "https://aigw-gzgy2.cucloud.cn:8443"
+    anthropic_model: str = "glm-5.1"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
     openai_base_url: str = ""

@@ -11,17 +11,25 @@ class ModelProfile(BaseModel):
     protocol: Literal["anthropic", "openai-chat"]
     model: str
     base_url: Optional[str] = None
-    api_key_env: str  # Environment variable name for API key
+    api_key_env: str  # Environment variable name for API key/token
     max_tokens: int = 4096
 
 
 # Built-in model profiles
 BUILTIN_PROFILES: Dict[str, ModelProfile] = {
+    "claude-glm-5.1": ModelProfile(
+        id="claude-glm-5.1",
+        protocol="anthropic",
+        model="glm-5.1",
+        base_url="https://aigw-gzgy2.cucloud.cn:8443",
+        api_key_env="WORKCLAW_ANTHROPIC_AUTH_TOKEN",
+    ),
     "anthropic": ModelProfile(
         id="anthropic",
         protocol="anthropic",
-        model="claude-sonnet-4-20250514",
-        api_key_env="WORKCLAW_ANTHROPIC_API_KEY",
+        model="glm-5.1",
+        base_url="https://aigw-gzgy2.cucloud.cn:8443",
+        api_key_env="WORKCLAW_ANTHROPIC_AUTH_TOKEN",
     ),
     "openai": ModelProfile(
         id="openai",
