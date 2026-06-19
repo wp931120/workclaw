@@ -8,6 +8,7 @@ const navItems = [
   { to: '/assistant', end: false, label: '助手', icon: 'chat' },
   { to: '/tasks', end: false, label: '任务', icon: 'check' },
   { to: '/sessions', end: false, label: '会话', icon: 'history' },
+  { to: '/skills', end: false, label: '技能', icon: 'tool' },
 ] as const
 
 function NavIcon({ name }: { name: string }) {
@@ -43,6 +44,14 @@ function NavIcon({ name }: { name: string }) {
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 10a7 7 0 1114 0 7 7 0 01-14 0z" />
           <path d="M10 6v4.5l3 1.5" />
+        </svg>
+      )
+    case 'tool':
+      return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14.7 5.3a2.1 2.1 0 010 3L10 13.8 6.3 15l1.2-3.7L3 8.7l3.7-.5 2.1-2.1 2.1-2.1 2.8.9-.9 2.3z" />
+          <path d="M12.5 9.5l-2.5 2.5" />
+          <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
         </svg>
       )
     default:

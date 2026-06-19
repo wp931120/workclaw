@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
-import type { Session, Capability } from '../types'
+import type { Session, Capability, ToolCallState } from '../types'
 import './AssistantPage.css'
 
 export function AssistantPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string; toolCalls?: ToolCallState[] }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [capabilities, setCapabilities] = useState<Capability[]>([])
@@ -66,7 +66,7 @@ export function AssistantPage() {
     setInput('')
     setLoading(true)
 
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setMessages(prev => [...prev, { role: 'user', content: userMessage, toolCalls: [] }])
 
     try {
       let sessionId = currentSession?.id
@@ -80,8 +80,9 @@ export function AssistantPage() {
       // sessionId is guaranteed to be defined now
       const finalSessionId = sessionId!
 
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: '', toolCalls: [] }])
       let fullContent = ''
+      let currentToolCalls: ToolCallState[] = []
 
       for await (const event of api.chat(finalSessionId, userMessage)) {
         if (event.type === 'text_delta') {
@@ -91,27 +92,59 @@ export function AssistantPage() {
             // Find the last assistant message to update
             for (let i = updated.length - 1; i >= 0; i--) {
               if (updated[i].role === 'assistant') {
-                updated[i] = { role: 'assistant', content: fullContent }
+                updated[i] = { ...updated[i], content: fullContent }
+                break
+              }
+            }
+            return updated
+          })
+        } else if (event.type === 'capability_call') {
+          // Add tool call card (running)
+          const toolCall: ToolCallState = {
+            id: event.data.call_id || `call_${Date.now()}`,
+            name: event.data.name,
+            title: event.data.title || event.data.name,
+            input: event.data.input,
+            status: 'running',
+          }
+          currentToolCalls.push(toolCall)
+          setMessages(prev => {
+            const updated = [...prev]
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].role === 'assistant') {
+                updated[i] = { ...updated[i], toolCalls: [...currentToolCalls] }
                 break
               }
             }
             return updated
           })
         } else if (event.type === 'capability_result') {
+          // Update tool call card status
           const result = event.data.result
+          currentToolCalls = currentToolCalls.map(tc =>
+            tc.name === event.data.name
+              ? {
+                  ...tc,
+                  status: result.success ? 'success' : 'error',
+                  result: result,
+                  duration_ms: event.data.duration_ms,
+                }
+              : tc
+          )
+          // Append result content to message
           if (result.content) {
             fullContent += `\n\n${result.content}`
-            setMessages(prev => {
-              const updated = [...prev]
-              for (let i = updated.length - 1; i >= 0; i--) {
-                if (updated[i].role === 'assistant') {
-                  updated[i] = { role: 'assistant', content: fullContent }
-                  break
-                }
-              }
-              return updated
-            })
           }
+          setMessages(prev => {
+            const updated = [...prev]
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].role === 'assistant') {
+                updated[i] = { ...updated[i], content: fullContent, toolCalls: [...currentToolCalls] }
+                break
+              }
+            }
+            return updated
+          })
         } else if (event.type === 'error') {
           console.error('Chat error:', event.data.message)
           fullContent += `\n\n[错误: ${event.data.message}]`
@@ -119,7 +152,7 @@ export function AssistantPage() {
             const updated = [...prev]
             for (let i = updated.length - 1; i >= 0; i--) {
               if (updated[i].role === 'assistant') {
-                updated[i] = { role: 'assistant', content: fullContent }
+                updated[i] = { ...updated[i], content: fullContent }
                 break
               }
             }
@@ -230,6 +263,48 @@ export function AssistantPage() {
                   )}
                 </div>
                 <div className="message-content">
+                  {msg.toolCalls && msg.toolCalls.length > 0 && (
+                    <div className="tool-calls-container">
+                      {msg.toolCalls.map(tc => (
+                        <div key={tc.id} className={`tool-call-card ${tc.status}`}>
+                          <div className="tool-call-icon">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M13 6l-3-3-4 4 3 3M3 10l3 3 4-4-3-3" />
+                            </svg>
+                          </div>
+                          <div className="tool-call-info">
+                            <div className="tool-call-name">{tc.title}</div>
+                            <div className="tool-call-detail">
+                              {JSON.stringify(tc.input).slice(0, 50)}
+                              {JSON.stringify(tc.input).length > 50 ? '...' : ''}
+                            </div>
+                            {tc.result && (
+                              <div className="tool-call-result">
+                                {tc.result.content?.slice(0, 80)}
+                                {tc.result.content && tc.result.content.length > 80 ? '...' : ''}
+                                {tc.duration_ms && <span className="tool-duration"> ({tc.duration_ms}ms)</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className={`tool-call-status ${tc.status}`}>
+                            {tc.status === 'running' ? (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <circle cx="8" cy="8" r="6" strokeDasharray="20" strokeDashoffset="5" />
+                              </svg>
+                            ) : tc.status === 'success' ? (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 8l3 3 5-5" />
+                              </svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M5 5l6 6M11 5l-6 6" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="message-text">{msg.content || (msg.role === 'assistant' && loading && i === messages.length - 1 ? '思考中...' : '')}</div>
                 </div>
               </div>

@@ -2,11 +2,13 @@
 
 import json
 import uuid
+import time
 from datetime import datetime
 from typing import AsyncGenerator, Any, Optional
 from app.capabilities.base import Capability, CapabilityContext, CapabilityResult
 from app.capabilities.registry import get_capability_registry
 from app.services.model_provider import ModelProvider
+from app.models.database import async_session_factory
 
 
 class SSEventType:
@@ -54,12 +56,20 @@ class AgenticLoop:
 
         Yields SSE events:
         - text_delta: streaming text from LLM
-        - capability_call: LLM wants to call a capability
-        - capability_result: capability execution result
+        - capability_call: LLM wants to call a capability (skill_call_start)
+        - capability_result: capability execution result (skill_call_result)
         - usage: token usage update
         - done: query completed
         - error: error occurred
         """
+        # Refresh enabled skills from database before each query
+        if async_session_factory is not None:
+            try:
+                self.capability_registry.refresh_enabled_from_db(async_session_factory)
+            except Exception:
+                # Continue with cached or all-enabled fallback
+                pass
+
         tool_calls = []
         tool_turns = 0
 
@@ -126,6 +136,7 @@ class AgenticLoop:
                 tool_name = tool_call.get("name")
                 tool_input = tool_call.get("input", {})
                 tool_id = tool_call.get("id")
+                call_start_time = time.time()
 
                 # Find capability
                 capability = self.capability_registry.find(tool_name)
@@ -141,12 +152,22 @@ class AgenticLoop:
                         "data": {
                             "name": tool_name,
                             "result": {"success": False, "error": f"Permission denied: {permission_result['reason']}"},
+                            "duration_ms": 0,
                         },
                     }
                     continue
 
-                # Emit capability call event
-                yield {"type": SSEventType.CAPABILITY_CALL, "data": {"name": tool_name, "input": tool_input}}
+                # Emit capability call event with more details
+                yield {
+                    "type": SSEventType.CAPABILITY_CALL,
+                    "data": {
+                        "name": tool_name,
+                        "title": capability.description.split(" - ")[0] if " - " in capability.description else capability.name,
+                        "input": tool_input,
+                        "call_id": tool_id,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                }
 
                 # Execute capability
                 context = CapabilityContext(
@@ -156,8 +177,19 @@ class AgenticLoop:
                 )
                 result = await capability.call(tool_input, context)
 
-                # Emit capability result
-                yield {"type": SSEventType.CAPABILITY_RESULT, "data": {"name": tool_name, "result": result}}
+                # Calculate duration
+                duration_ms = int((time.time() - call_start_time) * 1000)
+
+                # Emit capability result with more details
+                yield {
+                    "type": SSEventType.CAPABILITY_RESULT,
+                    "data": {
+                        "name": tool_name,
+                        "result": result,
+                        "duration_ms": duration_ms,
+                        "call_id": tool_id,
+                    }
+                }
 
                 # Add tool result to messages
                 messages.append({

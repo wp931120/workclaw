@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard'
 import { AssistantPage } from './pages/AssistantPage'
 import { TasksPage } from './pages/TasksPage'
 import { SessionsPage } from './pages/SessionsPage'
+import { SkillsPage } from './pages/SkillsPage'
 import './styles/index.css'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route path="assistant" element={<AssistantPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="sessions" element={<SessionsPage />} />
+          <Route path="skills" element={<SkillsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

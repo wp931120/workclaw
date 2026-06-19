@@ -56,11 +56,58 @@ export interface Capability {
   is_dangerous: boolean
 }
 
+export interface Skill {
+  id: string
+  name: string
+  title: string
+  description: string
+  category: string
+  enabled: boolean
+  read_only: boolean
+  is_dangerous: boolean
+  icon?: string
+}
+
 // SSE Event types
 export type SSEEvent =
   | { type: 'text_delta'; data: { content: string } }
-  | { type: 'capability_call'; data: { name: string; input: Record<string, unknown> } }
-  | { type: 'capability_result'; data: { name: string; result: Record<string, unknown> } }
+  | { type: 'capability_call'; data: CapabilityCallEvent }
+  | { type: 'capability_result'; data: CapabilityResultEvent }
   | { type: 'usage'; data: Record<string, unknown> }
   | { type: 'done'; data: { message_id: string } }
   | { type: 'error'; data: { message: string } }
+
+export interface CapabilityCallEvent {
+  name: string
+  title?: string
+  input: Record<string, unknown>
+  call_id?: string
+  timestamp?: string
+}
+
+export interface CapabilityResultEvent {
+  name: string
+  result: {
+    success: boolean
+    content?: string
+    error?: string
+    data?: Record<string, unknown>
+  }
+  duration_ms?: number
+  call_id?: string
+}
+
+// Tool call card state for UI
+export interface ToolCallState {
+  id: string
+  name: string
+  title: string
+  input: Record<string, unknown>
+  result?: {
+    success: boolean
+    content?: string
+    error?: string
+  }
+  status: 'running' | 'success' | 'error'
+  duration_ms?: number
+}

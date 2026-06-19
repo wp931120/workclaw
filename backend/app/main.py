@@ -86,7 +86,7 @@ def create_app() -> FastAPI:
     )
 
     # Include routers
-    from app.api.v1 import health, auth, chat, capabilities, tasks
+    from app.api.v1 import health, auth, chat, capabilities, tasks, skills
 
     api_router = APIRouter(prefix="/api/v1")
     api_router.include_router(health.router, tags=["health"])
@@ -94,6 +94,7 @@ def create_app() -> FastAPI:
     api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
     api_router.include_router(capabilities.router, tags=["capabilities"])
     api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+    api_router.include_router(skills.router, prefix="/skills", tags=["skills"])
 
     # Alias routes for cleaner API design:
     # /api/v1/sessions -> /api/v1/chat/sessions

@@ -109,6 +109,27 @@ class ApiClient {
     return res.data
   }
 
+  // Skills
+  async listSkills() {
+    const res = await this.client.get('/skills')
+    return res.data
+  }
+
+  async getSkill(skillId: string) {
+    const res = await this.client.get(`/skills/${skillId}`)
+    return res.data
+  }
+
+  async updateSkill(skillId: string, data: { enabled?: boolean }) {
+    const res = await this.client.patch(`/skills/${skillId}`, data)
+    return res.data
+  }
+
+  async toggleSkill(skillId: string) {
+    const res = await this.client.post(`/skills/${skillId}/toggle`)
+    return res.data
+  }
+
   // Tasks
   async listTasks(status?: string) {
     const params = status ? { status } : {}

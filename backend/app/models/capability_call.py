@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from sqlmodel import SQLModel, Field
 from enum import Enum
-from typing import Any, Optional, Dict
+from typing import Optional
 import sqlalchemy
 
 
@@ -22,7 +22,7 @@ class CapabilityCall(SQLModel, table=True):
     session_id: uuid.UUID = Field(foreign_key="sessions.id", index=True)
     message_id: uuid.UUID = Field(foreign_key="messages.id")
     capability_name: str = Field(index=True)
-    input_data: Optional[Dict[str, Any]] = Field(default=None, sa_column_kwargs={"type_": sqlalchemy.JSON})
-    output_data: Optional[Dict[str, Any]] = Field(default=None, sa_column_kwargs={"type_": sqlalchemy.JSON})
+    input_data: Optional[str] = Field(default=None, description="JSON input data")
+    output_data: Optional[str] = Field(default=None, description="JSON output data")
     status: CapabilityCallStatus = Field(default=CapabilityCallStatus.approved)
     created_at: datetime = Field(default_factory=datetime.utcnow)

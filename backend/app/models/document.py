@@ -3,7 +3,16 @@
 import uuid
 from datetime import datetime
 from sqlmodel import SQLModel, Field
-from typing import Any, Optional, Dict
+from typing import Optional
+
+
+class DocumentType(str):
+    """Document type enumeration."""
+    pdf = "pdf"
+    docx = "docx"
+    txt = "txt"
+    md = "md"
+    other = "other"
 
 
 class Document(SQLModel, table=True):
@@ -15,5 +24,5 @@ class Document(SQLModel, table=True):
     file_path: str
     file_type: str = Field(default="")
     summary: Optional[str] = Field(default=None)
-    metadata_: Optional[Dict[str, Any]] = Field(default=None, sa_column_kwargs={"type_": __import__("sqlalchemy").JSON}, alias="metadata")
+    extra_data: Optional[str] = Field(default=None, description="Extra JSON data")
     created_at: datetime = Field(default_factory=datetime.utcnow)

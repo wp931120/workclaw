@@ -528,3 +528,103 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ===== Tool call card ===== */
+.tool-call-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-card);
+  border: 1px solid var(--border-ws-subtle);
+  border-radius: var(--radius-lg);
+  margin: var(--space-2) 0;
+  max-width: 90%;
+}
+
+.tool-call-card.running {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.tool-call-card.success {
+  border-color: var(--status-success);
+}
+
+.tool-call-card.error {
+  border-color: var(--status-error);
+}
+
+.tool-call-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.tool-call-card.running .tool-call-icon {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.tool-call-card.success .tool-call-icon {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.tool-call-card.error .tool-call-icon {
+  background: var(--status-error-bg);
+  color: var(--status-error);
+}
+
+.tool-call-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-call-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-ws-primary);
+  margin-bottom: 2px;
+}
+
+.tool-call-detail {
+  font-size: var(--text-xs);
+  color: var(--text-ws-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-call-result {
+  font-size: var(--text-xs);
+  color: var(--text-ws-secondary);
+  margin-top: 4px;
+}
+
+.tool-call-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.tool-call-status.running svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
