@@ -3,8 +3,9 @@
 import uuid
 from datetime import datetime
 from sqlmodel import SQLModel, Field
+from sqlalchemy import JSON
 from enum import Enum
-from typing import Any, Optional, List
+from typing import Optional
 
 
 class MessageRole(str, Enum):
@@ -21,7 +22,11 @@ class Message(SQLModel, table=True):
     session_id: uuid.UUID = Field(foreign_key="sessions.id", index=True)
     role: MessageRole
     content: str = Field(default="")
-    tool_calls: Optional[List[dict[str, Any]]] = Field(default=None, sa_column_kwargs={"type_": __import__("sqlalchemy").JSON})
+    tool_calls: Optional[str] = Field(default=None)
     tool_call_id: Optional[str] = Field(default=None)
-    model_usage: Optional[dict[str, Any]] = Field(default=None, sa_column_kwargs={"type_": __import__("sqlalchemy").JSON})
+    model_usage: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Use field serializer for JSON fields
+    class Config:
+        arbitrary_types_allowed = True

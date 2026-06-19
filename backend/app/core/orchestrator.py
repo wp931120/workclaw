@@ -1,7 +1,7 @@
 """Session orchestrator - manages multi-turn conversations (inspired by Easy Agent QueryEngine)."""
 
 from datetime import datetime
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Dict, List, Any
 import uuid
 
 
@@ -58,7 +58,7 @@ class SessionOrchestrator:
 3. 保持回答简洁、专业、友好
 4. 如果用户请求的能力不可用或遇到错误，清晰告知原因
 
-现在开始帮助��户。
+现在开始帮助用户。
 """
         return prompt
 
@@ -68,12 +68,25 @@ class SessionOrchestrator:
         user_input: str,
         system_prompt: str,
         history: list[dict],
-    ) -> list[dict]:
-        """Prepare messages for the LLM, including system prompt and history."""
-        messages = [{"role": "system", "content": system_prompt}]
-        # Add history (truncated if needed)
-        for msg in history[-20:]:  # Last 20 messages
-            messages.append(msg)
+    ) -> Dict[str, Any]:
+        """
+        Prepare messages for the LLM.
+
+        Returns a dict with:
+        - system: the system prompt (separate from messages)
+        - messages: list of user/assistant messages for Anthropic Messages API
+        """
+        messages = []
+        # Add history (truncated if needed), excluding system messages
+        for msg in history[-20:]:
+            role = msg.get("role")
+            if role in ("user", "assistant"):
+                messages.append(msg)
+            # Skip system messages in history - they go in the system field
         # Add current user input
         messages.append({"role": "user", "content": user_input})
-        return messages
+
+        return {
+            "system": system_prompt,
+            "messages": messages,
+        }

@@ -6,6 +6,43 @@ from contextlib import asynccontextmanager
 
 from app.config.settings import get_settings
 from app.capabilities.bootstrap import bootstrap_capabilities
+from app.models.database import init_db, async_session_factory
+from app.models.user import User, UserRole
+from app.models.session import Session, SessionStatus
+from sqlmodel import select
+
+
+async def ensure_dev_user() -> None:
+    """Ensure a dev user exists for local development."""
+    if async_session_factory is None:
+        return
+    async with async_session_factory() as session:
+        # Check if dev user exists
+        stmt = select(User).where(User.email == "dev@workclaw.local")
+        result = await session.exec(stmt)
+        dev_user = result.first()
+        if not dev_user:
+            # Create dev user
+            dev_user = User(
+                email="dev@workclaw.local",
+                name="Dev User",
+                role=UserRole.admin,
+            )
+            session.add(dev_user)
+            await session.commit()
+            # Also create a default session
+            stmt = select(Session).where(Session.user_id == dev_user.id)
+            result = await session.exec(stmt)
+            if not result.first():
+                default_session = Session(
+                    user_id=dev_user.id,
+                    title="Welcome Session",
+                    model_profile="claude-glm-5.1",
+                    status=SessionStatus.active,
+                )
+                session.add(default_session)
+                await session.commit()
+            print("[WorkClaw] Created dev user: dev@workclaw.local")
 
 
 @asynccontextmanager
@@ -14,6 +51,10 @@ async def lifespan(app: FastAPI):
     # Startup
     settings = get_settings()
     print(f"Starting {settings.app_name} v{settings.app_version}")
+
+    # Initialize database
+    await init_db()
+    await ensure_dev_user()
 
     # Bootstrap capabilities
     bootstrap_capabilities()

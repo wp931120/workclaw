@@ -1,13 +1,14 @@
 """Database engine and session management."""
 
+from typing import Optional
 from sqlmodel import SQLModel
-from sqlmodel.ext.asyncio.session import AsyncSession, AsyncEngine
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, async_sessionmaker
 from app.config.settings import get_settings
 
 
-engine: AsyncEngine | None = None
-async_session_factory: async_sessionmaker[AsyncSession] | None = None
+engine: Optional[AsyncEngine] = None
+async_session_factory: Optional[async_sessionmaker[AsyncSession]] = None
 
 
 async def init_db() -> None:
@@ -15,9 +16,7 @@ async def init_db() -> None:
     global engine, async_session_factory
 
     settings = get_settings()
-    engine = AsyncEngine(
-        __import__("sqlalchemy").create_async_engine(settings.database_url, echo=settings.debug)
-    )
+    engine = create_async_engine(settings.database_url, echo=settings.debug)
     async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with engine.begin() as conn:

@@ -3,7 +3,7 @@
 import json
 import uuid
 from datetime import datetime
-from typing import AsyncGenerator, Any
+from typing import AsyncGenerator, Any, Optional
 from app.capabilities.base import Capability, CapabilityContext, CapabilityResult
 from app.capabilities.registry import get_capability_registry
 from app.services.model_provider import ModelProvider
@@ -46,6 +46,8 @@ class AgenticLoop:
         messages: list[dict],
         user_id: str,
         session_id: str,
+        system: Optional[str] = None,
+        model_profile: str = "claude-glm-5.1",
     ) -> AsyncGenerator[dict, None]:
         """
         Execute the agentic query loop.
@@ -62,10 +64,12 @@ class AgenticLoop:
         tool_turns = 0
 
         while tool_turns < self.MAX_TOOL_TURNS:
-            # Call LLM
+            # Call LLM with system prompt
             async for event in self.model_provider.stream_chat(
                 messages=messages,
                 tools=self._build_tools_schema(),
+                model_profile=model_profile,
+                system=system,
             ):
                 event_type = event.get("type")
 
